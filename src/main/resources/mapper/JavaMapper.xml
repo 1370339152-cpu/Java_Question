@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.feng.mapper.JavaMapper">
+    <insert id="addQuestion">
+        INSERT INTO javaquestion VALUES (#{id},#{question})
+    </insert>
+
+    <select id="getQuestion" resultType="com.feng.pojo.JavaPojo">
+        SELECT
+            id,question
+        FROM
+            javaquestion
+    </select>
+    <select id="getQuestionById" resultType="com.feng.pojo.JavaPojo">
+        SELECT
+            question
+        FROM
+            javaquestion
+        WHERE
+            id = #{questionId}
+    </select>
+    <select id="getLogin" resultType="com.feng.pojo.vo.resp.LoginRespVo">
+        SELECT
+            id,username,password,realname
+        FROM
+            javalogin
+        WHERE
+            username = #{username}
+    </select>
+    <select id="getRegisterReal">
+        INSERT INTO realuser VALUES (#{id},#{realname},#{username},#{password})
+    </select>
+    <select id="getShowUser" resultType="com.feng.pojo.vo.resp.LoginRespVo">
+        SELECT id,username,password,realname FROM javalogin WHERE id = #{id}
+    </select>
+    <select id="getForgetUser" resultType="com.feng.pojo.vo.resp.ForgetRespVo">
+        SELECT username,realname,password FROM realuser WHERE username = #{username}
+    </select>
+    <select id="getCollectSelect" resultType="java.lang.Integer">
+        SELECT question_id
+        FROM collectquestion
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+    <select id="getCollectAll" resultType="com.feng.pojo.vo.domain.CollectPojo">
+        SELECT
+            cq.question_id,
+            jq.question,
+            cq.create_time
+        FROM
+            javaquestion AS jq
+                INNER JOIN
+            collectquestion AS cq
+            ON
+                jq.id = cq.question_id
+        WHERE
+            cq.user_id = #{userId}
+    </select>
+    <insert id="getCollectAdd">
+        INSERT INTO collectquestion (user_id, question_id)
+        VALUES (#{userId}, #{questionId})
+    </insert>
+    <delete id="getCollectRemove">
+        DELETE FROM collectquestion
+        WHERE user_id = #{userId} AND question_id = #{questionId}
+    </delete>
+    <insert id="getRegister">
+        INSERT INTO javalogin VALUES (#{id},#{username},#{password},#{realname})
+    </insert>
+</mapper>

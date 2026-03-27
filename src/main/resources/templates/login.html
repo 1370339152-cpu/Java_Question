@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java面试题库 - 登录</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#06B6D4',
+                        secondary: '#14B8A6',
+                        dark: {
+                            100: '#F8FAFC',
+                            200: '#E2E8F0',
+                            300: '#CBD5E1',
+                            400: '#94A3B8',
+                            500: '#64748B',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1E293B',
+                            900: '#0F172A',
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'login': '0 8px 30px rgba(0, 0, 0, 0.15)',
+                        'login-hover': '0 12px 40px rgba(0, 0, 0, 0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass-effect { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); }
+            .input-focus { @apply focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200; }
+            .btn-hover { @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300; }
+            .error-input { @apply border-red-500 focus:border-red-500 focus:ring-red-400/30; }
+            .loading { @apply opacity-70 cursor-not-allowed; }
+            .card-border { @apply border border-dark-700/50; }
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 min-h-screen font-inter flex items-center justify-center p-4 text-dark-100">
+<div class="w-full max-w-md">
+
+    <!-- 登录卡片 -->
+    <div class="glass-effect rounded-2xl shadow-login overflow-hidden transform transition-all duration-500 hover:shadow-login-hover card-border">
+        <div class="p-6 sm:p-8 border-b border-dark-700/50 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <i class="fa fa-code text-primary text-2xl mr-2"></i>
+                <h1 class="text-xl font-bold text-primary">Java面试题库</h1>
+            </div>
+            <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold mb-1">账户登录</h2>
+            <p class="text-dark-400">输入账号信息，开始刷题之旅</p>
+        </div>
+
+        <form id="loginForm" class="p-6 sm:p-8 space-y-5">
+            <!-- 错误提示 -->
+            <div id="formError" class="hidden mb-2 p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-red-400 text-sm flex items-center">
+                <i class="fa fa-exclamation-circle mr-2"></i>
+                <span id="errorMsg"></span>
+            </div>
+
+            <!-- 账号 -->
+            <div>
+                <label for="username" class="block text-sm font-medium text-dark-300 mb-1">账号</label>
+                <div class="relative">
+                    <i class="fa fa-user absolute inset-y-0 left-0 pl-3 flex items-center text-dark-500"></i>
+                    <input id="username" name="username" type="text" placeholder="请输入账号"
+                           class="pl-10 w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus" required>
+                </div>
+            </div>
+
+            <!-- 密码 -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-dark-300 mb-1">密码</label>
+                <div class="relative">
+                    <i class="fa fa-lock absolute inset-y-0 left-0 pl-3 flex items-center text-dark-500"></i>
+                    <input id="password" name="password" type="password" placeholder="请输入密码"
+                           class="pl-10 w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus" required>
+                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-500 hover:text-primary">
+                        <i class="fa fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 验证码 -->
+            <div>
+                <label for="captcha" class="block text-sm font-medium text-dark-300 mb-1">验证码</label>
+                <div class="flex gap-3">
+                    <div class="relative flex-1">
+                        <i class="fa fa-shield absolute inset-y-0 left-0 pl-3 flex items-center text-dark-500"></i>
+                        <input id="captcha" name="captcha" type="text" placeholder="请输入验证码"
+                               class="pl-10 w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus" required>
+                    </div>
+                    <div class="w-36 h-12 rounded-lg overflow-hidden border border-dark-600 bg-dark-700/50 flex items-center justify-center">
+                        <img src="" alt="验证码" id="captchaImage" class="w-full h-full object-cover cursor-pointer" title="点击刷新">
+                    </div>
+                </div>
+                <input type="hidden" id="sessionId" name="sessionId">
+            </div>
+
+            <!-- 忘记密码 -->
+            <div class="flex justify-end">
+                <a href="/java/login/forget" class="text-sm text-primary hover:text-primary/80 transition-colors">忘记密码？</a>
+            </div>
+
+            <!-- 登录按钮 -->
+            <button type="button" id="submitBtn"
+                    class="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-lg font-medium btn-hover active:scale-[0.98]">
+                <span id="btnText">登录</span>
+                <span id="loadingIndicator" class="hidden"><i class="fa fa-spinner fa-spin ml-2"></i></span>
+            </button>
+
+            <!-- 注册 -->
+            <div class="text-center pt-2 text-sm text-dark-400">
+                还没有账号？
+                <a href="/java/register" class="text-primary hover:underline font-medium">立即注册</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="mt-6 text-center text-dark-600 text-sm">
+        <p>&copy; 2025 Java面试题库 | 专注Java技术面试备考</p>
+        <p>&copy; 如有任何问题想反馈，请发送邮箱1370339152@qq.com</p>
+    </div>
+</div>
+
+<script>
+    // 密码显示/隐藏
+    const togglePassword = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    togglePassword.addEventListener('click', function() {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.querySelector('i').classList.toggle('fa-eye');
+        this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+
+    // 验证码加载
+    const captchaImage = document.getElementById('captchaImage');
+    const sessionIdInput = document.getElementById('sessionId');
+
+    function loadCaptcha() {
+        fetch('/hutu/captcha')
+            .then(res => res.json())
+            .then(result => {
+                if (result.code === 1 && result.data) {
+                    const imageSrc = result.data.imageData.startsWith('data:image')
+                        ? result.data.imageData
+                        : 'data:image/png;base64,' + result.data.imageData;
+                    captchaImage.src = imageSrc;
+                    sessionIdInput.value = result.data.sessionId;
+                } else {
+                    showError(result.msg || '验证码加载失败');
+                }
+            })
+            .catch(err => showError('验证码异常: ' + err.message));
+    }
+
+    window.onload = loadCaptcha;
+    captchaImage.addEventListener('click', loadCaptcha);
+
+    // 登录逻辑
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const formError = document.getElementById('formError');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function showError(msg, inputElement) {
+        errorMsg.textContent = msg;
+        formError.classList.remove('hidden');
+        if (inputElement) {
+            inputElement.classList.add('error-input');
+            inputElement.focus();
+        }
+    }
+
+    submitBtn.addEventListener('click', () => {
+        formError.classList.add('hidden');
+        document.querySelectorAll('input').forEach(i => i.classList.remove('error-input'));
+
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const captcha = document.getElementById('captcha');
+
+        if (!username.value.trim()) return showError('请输入账号', username);
+        if (!password.value.trim()) return showError('请输入密码', password);
+        if (!captcha.value.trim()) return showError('请输入验证码', captcha);
+        if (!sessionIdInput.value) return showError('验证码加载失败，请刷新重试', captcha);
+
+        submitBtn.classList.add('loading');
+        btnText.textContent = '登录中';
+        loadingIndicator.classList.remove('hidden');
+        submitBtn.disabled = true;
+
+        const loginData = {
+            username: username.value.trim(),
+            password: password.value.trim(),
+            captcha: captcha.value.trim(),
+            sessionId: sessionIdInput.value
+        };
+
+        fetch('/java/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(loginData)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 1) {
+                    window.location.href = '/java/study';
+                } else throw new Error(data.msg || '登录失败');
+            })
+            .catch(e => {
+                showError(e.message);
+                loadCaptcha();
+            })
+            .finally(() => {
+                submitBtn.classList.remove('loading');
+                btnText.textContent = '登录';
+                loadingIndicator.classList.add('hidden');
+                submitBtn.disabled = false;
+            });
+    });
+
+    // 回车提交
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keyup', e => e.key === 'Enter' && submitBtn.click());
+    });
+</script>
+</body>
+</html>

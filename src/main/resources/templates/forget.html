@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java面试题库 - 忘记密码</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#06B6D4',
+                        secondary: '#14B8A6',
+                        dark: {
+                            100: '#F8FAFC',
+                            200: '#E2E8F0',
+                            300: '#CBD5E1',
+                            400: '#94A3B8',
+                            500: '#64748B',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1E293B',
+                            900: '#0F172A'
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'login': '0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(6, 182, 212, 0.1)',
+                        'login-hover': '0 15px 45px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(6, 182, 212, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto { content-visibility: auto; }
+            .glass-effect { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(8px); }
+            .input-focus { @apply focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none; }
+            .btn-hover { @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300; }
+            .error-input { @apply border-red-500 focus:border-red-500 focus:ring-red-400/30; }
+            .loading { @apply opacity-70 cursor-not-allowed; }
+            .card-border { @apply border border-dark-600/50; }
+            .password-toast { @apply fixed top-4 left-1/2 -translate-x-1/2 bg-dark-800 border border-primary/30 rounded-lg p-4 shadow-lg z-50 transition-all duration-300 opacity-0 translate-y-[-20px]; }
+            .input-group-focus { @apply scale-[1.01] transition-transform duration-200; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-dark-900 to-dark-800 min-h-screen font-inter flex items-center justify-center p-4 text-dark-100">
+<div class="w-full max-w-md">
+    <div class="glass-effect rounded-2xl shadow-login overflow-hidden transform transition-all duration-500 hover:shadow-login-hover card-border">
+        <div class="p-6 sm:p-8 border-b border-dark-600/50">
+            <div class="text-center mb-1">
+                <div class="flex items-center justify-center mb-3">
+                    <i class="fa fa-code text-primary text-2xl mr-2"></i>
+                    <h1 class="text-xl font-bold text-primary">Java面试题库</h1>
+                </div>
+                <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold">找回密码</h2>
+                <p class="text-dark-400 mt-1">输入账号、真实姓名及验证码，获取您的密码</p>
+            </div>
+        </div>
+        <!-- 移除 form 标签，直接用 div 包裹，彻底避免默认提交行为 -->
+        <div id="forgetForm" class="p-6 sm:p-8">
+            <div th:if="${param.error}" class="mb-4 p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-red-400 text-sm flex items-center">
+                <i class="fa fa-exclamation-circle mr-2"></i>
+                <span>信息验证失败，请检查账号和真实姓名是否匹配</span>
+            </div>
+            <div id="formError" class="mb-4 p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-red-400 text-sm flex items-center hidden">
+                <i class="fa fa-exclamation-circle mr-2"></i>
+                <span id="errorMsg"></span>
+            </div>
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-dark-300 mb-1">账号</label>
+                <div class="relative input-group" id="usernameGroup">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                        <i class="fa fa-user"></i>
+                    </div>
+                    <input type="text" id="username" name="username"
+                           class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                           placeholder="请输入您的登录账号" required>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="realname" class="block text-sm font-medium text-dark-300 mb-1">真实姓名</label>
+                <div class="relative input-group" id="realnameGroup">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                        <i class="fa fa-id-card"></i>
+                    </div>
+                    <input type="text" id="realname" name="realname"
+                           class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                           placeholder="请输入注册时的真实姓名" required>
+                </div>
+            </div>
+            <div class="mb-6">
+                <label for="captcha" class="block text-sm font-medium text-dark-300 mb-1">验证码</label>
+                <div class="flex gap-3">
+                    <div class="relative flex-1 input-group" id="captchaGroup">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                            <i class="fa fa-shield"></i>
+                        </div>
+                        <input type="text" id="captcha" name="captcha"
+                               class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                               placeholder="请输入验证码" required>
+                    </div>
+                    <div class="w-36 h-12 rounded-lg overflow-hidden border border-dark-600 bg-dark-700/50 flex items-center justify-center">
+                        <img src="" alt="验证码" class="w-full h-full object-cover cursor-pointer"
+                             id="captchaImage" title="点击刷新">
+                    </div>
+                </div>
+                <input type="hidden" id="sessionId" name="sessionId">
+            </div>
+            <button type="button" id="submitBtn"
+                    class="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium btn-hover hover:bg-primary/90 active:bg-primary/80">
+                <span id="btnText">获取密码</span>
+                <span id="loadingIndicator" class="hidden"><i class="fa fa-spinner fa-spin ml-2"></i></span>
+            </button>
+            <div class="mt-6 text-center">
+                <p class="text-dark-500 text-sm">
+                    记得密码了? <a href="/java/login" class="text-primary font-medium hover:underline">返回登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div id="passwordToast" class="password-toast">
+        <div class="flex items-start">
+            <i class="fa fa-check-circle text-primary mt-0.5 mr-2"></i>
+            <div>
+                <h3 class="font-medium text-dark-100">密码找回成功</h3>
+                <p class="text-sm text-dark-300 mt-1">您的账号密码为：<span id="showPassword" class="text-primary font-mono"></span></p>
+                <p class="text-xs text-dark-500 mt-2">请尽快登录并修改密码，保障账号安全</p>
+            </div>
+            <button id="closeToast" class="ml-4 text-dark-400 hover:text-dark-100">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="mt-6 text-center text-dark-600 text-sm">
+        <p>&copy; 2025 Java面试题库 版权所有 | 专注Java技术面试备考</p>
+    </div>
+</div>
+<script>
+    // 验证码加载逻辑
+    const captchaImage = document.getElementById('captchaImage');
+    const sessionIdInput = document.getElementById('sessionId');
+    function loadCaptcha() {
+        fetch('/hutu/captcha')
+            .then(response => {
+                if (!response.ok) throw new Error(`请求失败，状态码: ${response.status}`);
+                return response.json();
+            })
+            .then(result => {
+                if (result.code === 1 && result.data) {
+                    const imageSrc = result.data.imageData.startsWith('data:image')
+                        ? result.data.imageData
+                        : 'data:image/png;base64,' + result.data.imageData;
+                    captchaImage.src = imageSrc;
+                    sessionIdInput.value = result.data.sessionId;
+                    captchaImage.onerror = () => showError('验证码图片加载失败，请刷新');
+                } else {
+                    const errMsg = result.msg || `状态码错误（预期1，实际${result.code}）`;
+                    showError('验证码加载失败：' + errMsg);
+                }
+            })
+            .catch(error => {
+                if (error.message.includes('Failed to fetch')) {
+                    showError('网络异常，无法加载验证码，请检查网络连接');
+                } else {
+                    showError('验证码加载异常：' + error.message);
+                }
+                console.error('加载失败详情:', error);
+            });
+    }
+    window.onload = loadCaptcha;
+    captchaImage.addEventListener('click', loadCaptcha);
+
+    // 核心元素获取
+    const usernameInput = document.getElementById('username');
+    const realnameInput = document.getElementById('realname');
+    const captchaInput = document.getElementById('captcha');
+    const formError = document.getElementById('formError');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const passwordToast = document.getElementById('passwordToast');
+    const showPassword = document.getElementById('showPassword');
+    const closeToast = document.getElementById('closeToast');
+    const usernameGroup = document.getElementById('usernameGroup');
+    const realnameGroup = document.getElementById('realnameGroup');
+    const captchaGroup = document.getElementById('captchaGroup');
+
+    // 提交按钮点击事件
+    submitBtn.addEventListener('click', function() {
+        // 重置错误状态
+        formError.classList.add('hidden');
+        usernameInput.classList.remove('error-input');
+        realnameInput.classList.remove('error-input');
+        captchaInput.classList.remove('error-input');
+        usernameGroup.classList.remove('input-group-focus');
+        realnameGroup.classList.remove('input-group-focus');
+        captchaGroup.classList.remove('input-group-focus');
+
+        // 表单验证
+        let isValid = true;
+        if (!usernameInput.value.trim()) {
+            showError('请输入登录账号', usernameInput, usernameGroup);
+            isValid = false;
+        }
+        if (!realnameInput.value.trim()) {
+            showError('请输入真实姓名', realnameInput, realnameGroup);
+            isValid = false;
+        }
+        if (!captchaInput.value.trim()) {
+            showError('请输入验证码', captchaInput, captchaGroup);
+            isValid = false;
+        }
+        if (!sessionIdInput.value) {
+            showError('验证码加载失败，请刷新重试', captchaInput, captchaGroup);
+            isValid = false;
+        }
+        if (!isValid) return;
+
+        // 加载状态
+        submitBtn.classList.add('loading');
+        btnText.textContent = '验证中';
+        loadingIndicator.classList.remove('hidden');
+        submitBtn.disabled = true;
+
+        // 构造请求数据
+        const forgetData = {
+            username: usernameInput.value.trim(),
+            realname: realnameInput.value.trim(),
+            code: captchaInput.value.trim(),
+            sessionId: sessionIdInput.value
+        };
+
+        // 发送 POST 请求（明确指定方法）
+        fetch('/java/login/forget', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest' // 标记为 AJAX 请求
+            },
+            body: JSON.stringify(forgetData),
+            signal: AbortSignal.timeout(10000)
+        }).then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    if (response.status === 404) {
+                        throw new Error('找回密码接口不存在，请联系管理员');
+                    } else if (response.status === 500) {
+                        throw new Error('服务器内部错误，稍后再试');
+                    } else if (response.status === 405) {
+                        throw new Error('请求方法错误，请检查前端代码');
+                    } else {
+                        // 移除 err.msg，直接用固定提示
+                        throw new Error(`验证失败: ${response.statusText}`);
+                    }
+                });
+            }
+            return response.json();
+        })
+            .then(data => {
+                // 新增日志，方便排查是否走到成功回调
+                console.log('后端返回数据：', data);
+                if (data.code === 1 && data.data?.password) {
+                    showPassword.textContent = data.data.password;
+                    // 强制显示提示框（解决样式可能的隐藏问题）
+                    passwordToast.style.opacity = '1';
+                    passwordToast.style.transform = 'translateX(-50%) translateY(0)';
+                    loadCaptcha();
+                    captchaInput.value = '';
+                } else {
+                    // 彻底移除 data.msg，直接用默认提示
+                    throw new Error('未获取到密码，请检查信息是否正确');
+                }
+            })
+            .catch(error => {
+                if (error.name === 'TimeoutError') {
+                    showError('请求超时，请检查网络或稍后重试');
+                } else if (error.message.includes('Failed to fetch')) {
+                    showError('网络异常，无法提交请求，请检查网络连接');
+                } else {
+                    showError(error.message);
+                }
+                loadCaptcha();
+            })
+            .finally(() => {
+                submitBtn.classList.remove('loading');
+                btnText.textContent = '获取密码';
+                loadingIndicator.classList.add('hidden');
+                submitBtn.disabled = false;
+            });
+    });
+
+    // 关闭提示框
+    closeToast.addEventListener('click', function() {
+        passwordToast.classList.add('opacity-0', 'translate-y-[-20px]');
+    });
+
+    // 错误提示函数
+    function showError(msg, inputElement, groupElement) {
+        errorMsg.textContent = msg;
+        formError.classList.remove('hidden');
+        if (inputElement) {
+            inputElement.classList.add('error-input');
+            inputElement.focus();
+        }
+        if (groupElement) {
+            groupElement.classList.add('input-group-focus');
+        }
+    }
+
+    // 输入框事件监听
+    const inputElements = [usernameInput, realnameInput, captchaInput];
+    const inputGroups = [usernameGroup, realnameGroup, captchaGroup];
+    inputElements.forEach((input, index) => {
+        input.addEventListener('focus', () => {
+            inputGroups[index].classList.add('input-group-focus');
+            input.classList.remove('error-input');
+        });
+        input.addEventListener('blur', () => {
+            if (!input.value.trim()) {
+                inputGroups[index].classList.remove('input-group-focus');
+            }
+        });
+        input.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                const nextIndex = index + 1;
+                if (nextIndex < inputElements.length) {
+                    inputElements[nextIndex].focus();
+                } else {
+                    submitBtn.click();
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>

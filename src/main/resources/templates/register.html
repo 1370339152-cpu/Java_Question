@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java面试题库 - 注册</title>
+    <!-- 引入外部资源（与登录页一致） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Tailwind配置：复用登录页深色主题 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#06B6D4', // 科技感青蓝色主色调
+                        secondary: '#14B8A6',
+                        dark: {
+                            100: '#F8FAFC',
+                            200: '#E2E8F0',
+                            300: '#CBD5E1',
+                            400: '#94A3B8',
+                            500: '#64748B',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1E293B',
+                            900: '#0F172A', // 深色背景主色
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'login': '0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(6, 182, 212, 0.1)',
+                        'login-hover': '0 15px 45px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(6, 182, 212, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto { content-visibility: auto; }
+            .glass-effect { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(8px); }
+            .input-focus { @apply focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none; }
+            .btn-hover { @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300; }
+            .error-input { @apply border-red-500 focus:border-red-500 focus:ring-red-400/30; }
+            .loading { @apply opacity-70 cursor-not-allowed; }
+            .card-border { @apply border border-dark-600/50; }
+        }
+    </style>
+</head>
+<!-- 复用登录页深色渐变背景 -->
+<body class="bg-gradient-to-br from-dark-900 to-dark-800 min-h-screen font-inter flex items-center justify-center p-4 text-dark-100">
+<div class="w-full max-w-md">
+    <!-- 注册卡片：与登录页样式一致 -->
+    <div class="glass-effect rounded-2xl shadow-login overflow-hidden transform transition-all duration-500 hover:shadow-login-hover card-border">
+        <!-- 卡片头部：调整为注册主题 -->
+        <div class="p-6 sm:p-8 border-b border-dark-600/50">
+            <div class="text-center mb-1">
+                <div class="flex items-center justify-center mb-3">
+                    <i class="fa fa-code text-primary text-2xl mr-2"></i>
+                    <h1 class="text-xl font-bold text-primary">Java面试题库</h1>
+                </div>
+                <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold">账户注册</h2>
+                <p class="text-dark-400 mt-1">填写以下信息（真实姓名用于密码找回），创建您的刷题账号</p>
+            </div>
+        </div>
+
+        <!-- 注册表单：新增realname输入框 -->
+        <form id="registerForm" class="p-6 sm:p-8">
+            <!-- 注册错误提示：与登录页样式一致 -->
+            <div th:if="${param.error}" class="mb-4 p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-red-400 text-sm flex items-center">
+                <i class="fa fa-exclamation-circle mr-2"></i>
+                <span th:text="${param.msg}">注册失败，请检查信息后重试</span>
+            </div>
+            <div id="formError" class="mb-4 p-3 bg-red-900/20 border border-red-800/30 rounded-lg text-red-400 text-sm flex items-center hidden">
+                <i class="fa fa-exclamation-circle mr-2"></i>
+                <span id="errorMsg"></span>
+            </div>
+
+            <!-- 1. 真实姓名输入框（用于密码找回） -->
+            <div class="mb-4">
+                <label for="realname" class="block text-sm font-medium text-dark-300 mb-1">真实姓名 <span class="text-red-400 text-xs">(用于密码找回)</span></label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                        <i class="fa fa-id-card"></i>
+                    </div>
+                    <input type="text" id="realname" name="realname"
+                           class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                           placeholder="请输入真实姓名（与找回信息一致）" required>
+                </div>
+            </div>
+
+            <!-- 2. 用户名输入 -->
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-dark-300 mb-1">用户名</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                        <i class="fa fa-user"></i>
+                    </div>
+                    <input type="text" id="username" name="username"
+                           class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                           placeholder="请输入用户名（3-16位字符）" required>
+                </div>
+            </div>
+
+            <!-- 3. 密码输入（带显示隐藏切换） -->
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium text-dark-300 mb-1">密码</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                        <i class="fa fa-lock"></i>
+                    </div>
+                    <input type="password" id="password" name="password"
+                           class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                           placeholder="请输入密码（至少8位，含字母和数字）" required>
+                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-dark-500 hover:text-primary">
+                        <i class="fa fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. 确认密码输入 -->
+            <div class="mb-6">
+                <label for="confirmPassword" class="block text-sm font-medium text-dark-300 mb-1">确认密码</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-dark-500">
+                        <i class="fa fa-lock"></i>
+                    </div>
+                    <input type="password" id="confirmPassword" name="confirmPassword"
+                           class="pl-10 block w-full rounded-lg border border-dark-600 bg-dark-800/50 py-3 text-dark-100 input-focus"
+                           placeholder="请再次输入密码" required>
+                </div>
+            </div>
+
+            <!-- 注册按钮 -->
+            <button type="button" id="submitBtn"
+                    class="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium btn-hover hover:bg-primary/90 active:bg-primary/80">
+                <span id="btnText">注册账号</span>
+                <span id="loadingIndicator" class="hidden"><i class="fa fa-spinner fa-spin ml-2"></i></span>
+            </button>
+
+            <!-- 跳转登录链接 -->
+            <div class="mt-6 text-center">
+                <p class="text-dark-500 text-sm">
+                    已有账号? <a href="/java/login" class="text-primary font-medium hover:underline">立即登录</a>
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <!-- 页脚：与登录页一致 -->
+    <div class="mt-6 text-center text-dark-600 text-sm">
+        <p>&copy; 2025 Java面试题库 版权所有 | 专注Java技术面试备考</p>
+    </div>
+</div>
+
+<script>
+    // 1. 密码显示/隐藏切换（复用登录页逻辑）
+    const togglePassword = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    togglePassword.addEventListener('click', function() {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.querySelector('i').classList.toggle('fa-eye');
+        this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+
+    // 2. 注册表单提交逻辑（新增realname字段传递）
+    const registerForm = document.getElementById('registerForm');
+    const realnameInput = document.getElementById('realname'); // 新增真实姓名输入框
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const formError = document.getElementById('formError');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    submitBtn.addEventListener('click', function() {
+        // 重置错误状态
+        formError.classList.add('hidden');
+        realnameInput.classList.remove('error-input'); // 新增真实姓名错误重置
+        usernameInput.classList.remove('error-input');
+        passwordInput.classList.remove('error-input');
+        confirmPasswordInput.classList.remove('error-input');
+        let isValid = true;
+
+        // 前端表单验证（新增真实姓名验证）
+        // 1. 真实姓名验证（2-10位中文/英文，避免特殊字符）
+        const realnameReg = /^[a-zA-Z\u4e00-\u9fa5]{2,10}$/;
+        if (!realnameInput.value.trim()) {
+            showError('请输入真实姓名（用于密码找回）', realnameInput);
+            isValid = false;
+        } else if (!realnameReg.test(realnameInput.value.trim())) {
+            showError('真实姓名需为2-10位中文或英文，不含特殊字符', realnameInput);
+            isValid = false;
+        }
+
+        // 2. 用户名验证（3-16位字符）
+        if (!usernameInput.value.trim()) {
+            showError('请输入用户名', usernameInput);
+            isValid = false;
+        } else if (usernameInput.value.trim().length < 3 || usernameInput.value.trim().length > 16) {
+            showError('用户名需为3-16位字符', usernameInput);
+            isValid = false;
+        }
+
+        // 3. 密码验证（至少8位，含字母和数字）
+        const passwordReg = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+        if (!passwordInput.value.trim()) {
+            showError('请输入密码', passwordInput);
+            isValid = false;
+        } else if (!passwordReg.test(passwordInput.value.trim())) {
+            showError('密码需至少8位，且包含字母和数字', passwordInput);
+            isValid = false;
+        }
+
+        // 4. 确认密码验证
+        if (!confirmPasswordInput.value.trim()) {
+            showError('请确认密码', confirmPasswordInput);
+            isValid = false;
+        } else if (confirmPasswordInput.value.trim() !== passwordInput.value.trim()) {
+            showError('两次输入的密码不一致', confirmPasswordInput);
+            isValid = false;
+        }
+
+        if (!isValid) return;
+
+        // 显示加载状态
+        submitBtn.classList.add('loading');
+        btnText.textContent = '注册中';
+        loadingIndicator.classList.remove('hidden');
+        submitBtn.disabled = true;
+
+        // 构造注册数据（新增realname字段，与后端RegisterReqVo对应）
+        const registerData = {
+            realname: realnameInput.value.trim(), // 新增真实姓名字段
+            username: usernameInput.value.trim(),
+            password: passwordInput.value.trim()
+            // 如需其他字段（如邮箱），可在此处添加
+        };
+
+        // 发送POST请求提交注册数据（适配后端/java/register接口）
+        fetch('/java/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(registerData) // 关键：将真实姓名等数据放入请求体
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.msg || `注册失败: ${response.statusText}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 适配后端成功状态码（假设为1）
+                if (data.code === 1) {
+                    // 注册成功，跳转到登录页
+                    alert('注册成功！请牢记真实姓名（用于密码找回），即将跳转到登录页');
+                    window.location.href = '/java/login';
+                } else {
+                    throw new Error(data.msg || '注册失败，请重试');
+                }
+            })
+            .catch(error => {
+                showError(error.message);
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                submitBtn.classList.remove('loading');
+                btnText.textContent = '注册账号';
+                loadingIndicator.classList.add('hidden');
+                submitBtn.disabled = false;
+            });
+    });
+
+    // 3. 错误提示函数（复用登录页逻辑）
+    function showError(msg, inputElement) {
+        errorMsg.textContent = msg;
+        formError.classList.remove('hidden');
+        if (inputElement) {
+            inputElement.classList.add('error-input');
+            inputElement.focus();
+        }
+    }
+
+    // 4. 输入框交互效果（与登录页一致，包含真实姓名输入框）
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('scale-[1.01]');
+            this.parentElement.style.transition = 'transform 0.2s ease';
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('scale-[1.01]');
+        });
+    });
+
+    // 5. 回车键提交
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keyup', e => e.key === 'Enter' && submitBtn.click());
+    });
+</script>
+</body>
+</html>

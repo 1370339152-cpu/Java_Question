@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新增Java题目 - Java学习题库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#60A5FA',
+                        secondary: '#34D399',
+                        dark: '#0f172a',
+                        glass: 'rgba(255,255,255,0.08)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    backdropBlur: {
+                        sm: '8px',
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card {
+                @apply bg-glass backdrop-blur-sm border border-white/10 rounded-2xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-white/20;
+            }
+            .btn {
+                @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-300 focus:outline-none;
+            }
+            .btn-primary {
+                @apply bg-primary text-white hover:bg-primary/90 shadow-md hover:-translate-y-0.5;
+            }
+            .btn-secondary {
+                @apply bg-gray-600 text-gray-200 hover:bg-gray-500;
+            }
+            .fade-in {
+                animation: fadeIn 0.4s ease-out forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(5px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 font-sans">
+<!-- 顶部导航 -->
+<header class="border-b border-white/10 bg-glass backdrop-blur-sm">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <i class="fa fa-code text-primary text-2xl"></i>
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight">Java学习题库</h1>
+        </div>
+        <a href="/" class="btn btn-primary flex items-center gap-2 text-sm">
+            <i class="fa fa-arrow-left"></i> 返回题库
+        </a>
+    </div>
+</header>
+
+<!-- 主内容 -->
+<main class="container mx-auto px-6 py-12">
+    <div class="max-w-3xl mx-auto space-y-10 fade-in">
+        <!-- 表单卡片 -->
+        <div class="card p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-semibold flex items-center">
+                    <i class="fa fa-pencil-square-o text-secondary mr-3"></i> 添加新题目
+                </h2>
+                <span class="bg-secondary/20 text-secondary px-3 py-1 rounded-full text-sm font-medium">题目录入</span>
+            </div>
+
+            <!-- 提示信息 -->
+            <div id="message" class="hidden mb-6 text-center rounded-lg py-3 font-medium"></div>
+
+            <!-- 表单 -->
+            <form id="addQuestionForm" class="space-y-6">
+                <div>
+                    <label for="questionContent" class="block font-medium mb-2 text-gray-200">
+                        题目内容 <span class="text-yellow-400">*</span>
+                    </label>
+                    <textarea
+                            id="questionContent"
+                            rows="6"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-white placeholder-gray-400 outline-none transition-all"
+                            placeholder="请输入Java题目内容（例如：Java中的基本数据类型有哪些？）..."
+                            required
+                    ></textarea>
+                    <p class="mt-2 text-xs text-gray-400">请确保题目描述清晰、无歧义，建议包含具体场景</p>
+                </div>
+
+                <div class="flex justify-end gap-4 pt-6 border-t border-white/10">
+                    <button type="button" id="cancelBtn" class="btn btn-secondary flex items-center gap-2">
+                        <i class="fa fa-times"></i> 取消
+                    </button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary flex items-center gap-2">
+                        <i class="fa fa-save"></i> 提交题目
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 说明卡片 -->
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fa fa-info-circle text-primary mr-2"></i> 题目录入规范
+            </h3>
+            <ul class="space-y-2 text-sm text-gray-300">
+                <li class="flex items-start">
+                    <i class="fa fa-check text-secondary mt-1 mr-2"></i>
+                    <span>题目应围绕Java知识点（语法、框架、JVM等）</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fa fa-check text-secondary mt-1 mr-2"></i>
+                    <span>避免重复题目，提交前可先搜索确认</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fa fa-check text-secondary mt-1 mr-2"></i>
+                    <span>题目内容建议控制在500字以内</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</main>
+
+<!-- 页脚 -->
+<footer class="text-center py-6 text-sm text-gray-500 border-t border-white/10">
+    © 2025 Java学习题库 · 专注Java知识练习
+</footer>
+
+<script th:inline="javascript">
+    const form = document.getElementById('addQuestionForm');
+    const question = document.getElementById('questionContent');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const message = document.getElementById('message');
+
+    function showMessage(text, type) {
+        message.textContent = text;
+        message.className = `mb-6 text-center rounded-lg py-3 font-medium ${
+            type === 'success' ? 'bg-green-600/90' :
+                type === 'warning' ? 'bg-yellow-600/90' : 'bg-red-600/90'
+        }`;
+        message.classList.remove('hidden');
+        if (type !== 'success') setTimeout(() => message.classList.add('hidden'), 4000);
+    }
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const value = question.value.trim();
+        if (!value) return showMessage('题目内容不能为空！', 'warning');
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 提交中...';
+
+        try {
+            const res = await fetch('/java/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: value })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMessage('题目新增成功！即将返回题库...', 'success');
+                setTimeout(() => (window.location.href = '/java/study'), 2500);
+            } else {
+                showMessage('新增失败：' + (data.message || '服务器异常'), 'warning');
+            }
+        } catch (err) {
+            showMessage('请求出错：' + err.message, 'warning');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-save"></i> 提交题目';
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => (window.location.href = '/java/study'));
+</script>
+</body>
+</html>

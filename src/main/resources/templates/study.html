@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java学习题库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        neutral: '#1E293B',
+                        light: '#334155',
+                        'text-light': '#F8FAFC',
+                        'text-muted': '#94A3B8',
+                        'correct': '#10B981',
+                        'warning': '#F59E0B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+                        'hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        /* 背景优化：渐变+低饱和纹理，不晃眼且丰富 */
+        body {
+            background: linear-gradient(135deg, #121212 0%, #1E293B 100%);
+            background-image:
+                    linear-gradient(135deg, #121212 0%, #1E293B 100%),
+                    radial-gradient(rgba(79, 70, 229, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px;
+        }
+
+        main {
+            background: rgba(18, 18, 18, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        /* 卡片增强：分层质感，柔和不刺眼 */
+        .card-enhance {
+            @apply border border-gray-700/80 bg-gradient-to-br from-light/95 to-light/80;
+            box-shadow:
+                    0 10px 25px -5px rgba(0, 0, 0, 0.2),
+                    0 8px 10px -6px rgba(0, 0, 0, 0.1),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* 头部和侧边栏优化：半透明模糊，贴合背景 */
+        header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        #sidebar {
+            background: rgba(33, 41, 53, 0.9);
+            backdrop-filter: blur(4px);
+        }
+
+        /* 输入框优化：柔和渐变+弱边框，聚焦不刺眼 */
+        #answer {
+            background: linear-gradient(180deg, #2A3342 0%, #1E293B 100%);
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        #answer:focus {
+            border-color: rgba(79, 70, 229, 0.5);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+        }
+
+        /* 进度条优化：柔和渐变，避免纯色刺眼 */
+        #progressBar {
+            background: linear-gradient(90deg, #4F46E5 0%, #7C3AED 100%);
+        }
+
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
+            }
+
+            .btn-hover {
+                @apply transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5;
+            }
+
+            .nav-item {
+                @apply px-3 py-2 rounded mb-1 text-sm transition-all cursor-pointer hover:bg-primary/20;
+            }
+
+            .nav-item.active {
+                @apply bg-primary text-white font-medium;
+            }
+
+            .sidebar-collapsed {
+                @apply w-20;
+            }
+
+            .sidebar-expanded {
+                @apply w-64;
+            }
+
+            .message-animate {
+                @apply transition-all duration-300 ease-in-out;
+            }
+
+            .collect-btn {
+                @apply transition-all duration-300 p-2 rounded-full hover:bg-primary/20 cursor-pointer;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen font-sans text-text-light flex flex-col">
+<header class="bg-neutral shadow-md z-50">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="bg-primary/20 p-2 rounded-lg">
+                <i class="fa fa-book text-primary text-2xl"></i>
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold text-text-light">Java学习题库</h1>
+        </div>
+
+        <div class="flex items-center space-x-6">
+            <button id="addQuestionBtn"
+                    class="px-4 py-2 bg-secondary text-white rounded-lg text-sm font-medium btn-hover flex items-center">
+                <i class="fa fa-plus mr-1.5"></i>新增题目
+            </button>
+
+            <div class="text-sm hidden md:flex items-center">
+                <span id="progress" class="bg-primary/10 text-primary px-3 py-1.5 rounded-full flex items-center">
+                    <i class="fa fa-tasks mr-1.5"></i>
+                    第 <span id="currentQuestionNum">1</span> 题 / 共 <span id="totalQuestionsNum">0</span> 题
+                </span>
+            </div>
+
+            <div class="relative group" id="userMenu">
+                <button class="flex items-center space-x-2 focus:outline-none">
+                    <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary/30 transition-all group-hover:border-primary">
+                        <i class="fa fa-user text-primary text-xl"></i>
+                    </div>
+                    <span class="text-sm font-medium hidden md:inline-block" id="usernameDisplay">加载中...</span>
+                    <span class="text-sm text-text-muted hidden md:inline-block" id="realnameDisplay">（加载中...）</span>
+                    <i class="fa fa-chevron-down text-xs text-text-muted transition-transform duration-200 group-hover:rotate-180"></i>
+                </button>
+
+                <div class="absolute right-0 mt-2 w-48 bg-light rounded-lg shadow-lg border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+                    <div class="py-2">
+                        <div class="px-4 py-3 border-b border-gray-700">
+                            <p class="text-sm font-medium" id="usernameInMenu">加载中...</p>
+                            <p class="text-xs text-text-muted" id="realnameInMenu">--</p>
+                            <p class="text-xs text-text-muted" id="userRole">未登录</p>
+                        </div>
+                        <a href="#" class="block px-4 py-2 text-sm hover:bg-primary/20 transition-colors">
+                            <i class="fa fa-user-circle mr-2 text-text-muted"></i>个人中心
+                        </a>
+                        <a href="/java/study/collect" class="block px-4 py-2 text-sm hover:bg-primary/20 transition-colors">
+                            <i class="fa fa-star mr-2 text-text-muted"></i>我的收藏
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm hover:bg-primary/20 transition-colors">
+                            <i class="fa fa-cog mr-2 text-text-muted"></i>设置
+                        </a>
+                        <a id="loginLogoutLink" href="/java/login"
+                           class="block px-4 py-2 text-sm hover:bg-primary/20 transition-colors">
+                            <i class="fa fa-sign-out mr-2 text-text-muted"></i>登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 pb-3 md:hidden">
+        <div class="text-sm flex items-center justify-center">
+            <span id="mobileProgress" class="bg-primary/10 text-primary px-3 py-1.5 rounded-full flex items-center">
+                <i class="fa fa-tasks mr-1.5"></i>
+                第 <span id="mobileCurrentQuestionNum">1</span> 题 / 共 <span id="mobileTotalQuestionsNum">0</span> 题
+            </span>
+        </div>
+    </div>
+</header>
+
+<div class="flex flex-1 overflow-hidden">
+    <div id="sidebar"
+         class="bg-light sidebar-expanded border-r border-gray-700 flex-shrink-0 hidden md:block transition-all duration-300">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-neutral/50">
+            <h3 class="font-medium text-white sidebar-text flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>题目导航
+            </h3>
+            <div class="flex items-center space-x-2">
+                <button id="collapseSidebar"
+                        class="text-gray-300 hover:text-white p-1.5 rounded-full hover:bg-primary/20">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+                <button id="expandSidebar"
+                        class="text-gray-300 hover:text-white p-1.5 rounded-full hover:bg-primary/20 hidden">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+                <button id="toggleSidebar"
+                        class="md:hidden text-gray-300 hover:text-white p-1.5 rounded-full hover:bg-primary/20">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div id="questionsList" class="p-3 overflow-y-auto max-h-[calc(100vh-130px)]">
+            <div class="flex items-center justify-center py-8 text-text-muted" id="emptyQuestionState">
+                <div class="text-center">
+                    <i class="fa fa-folder-open-o text-4xl mb-3 opacity-50"></i>
+                    <p>暂无题目数据</p>
+                    <p class="text-xs mt-1">请添加题目或检查数据加载</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="sidebarTrigger"
+            class="md:hidden fixed left-4 top-24 z-40 bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg btn-hover">
+        <i class="fa fa-list text-lg"></i>
+    </button>
+
+    <main class="flex-1 overflow-y-auto bg-gray-900/50">
+        <div class="container mx-auto px-4 py-6 md:py-10">
+            <div class="max-w-3xl mx-auto">
+                <div class="bg-light rounded-xl shadow-card card-hover p-6 md:p-8 mb-8 border border-gray-700/50 card-enhance">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="inline-flex items-center bg-primary/90 text-white px-4 py-1.5 rounded-full text-sm font-medium">
+                            <i class="fa fa-question-circle mr-2"></i>
+                            题目 <span id="questionNumber">1</span>
+                        </div>
+                        <button id="collectBtn" class="collect-btn" title="收藏题目">
+                            <i id="collectIcon" class="fa fa-star-o text-warning text-xl"></i>
+                        </button>
+                    </div>
+
+                    <h2 id="questionTitle" class="text-xl md:text-2xl font-semibold text-white mb-4 leading-relaxed">
+                        这里将显示题目内容
+                    </h2>
+
+                    <div class="mb-6">
+                        <label for="answer" class="block text-gray-200 font-medium mb-3 flex items-center">
+                            <i class="fa fa-pencil-square-o mr-2 text-primary"></i>你的答案：
+                        </label>
+                        <textarea id="answer" name="answer" rows="5"
+                                  class="w-full px-4 py-3 bg-gray-700/80 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-white placeholder-gray-400 resize-none"
+                                  placeholder="请输入你的答案..."></textarea>
+                        <p class="text-xs text-text-muted mt-2 flex items-center">
+                            <i class="fa fa-keyboard-o mr-1"></i>按 Ctrl+Enter 可快速提交答案
+                        </p>
+                    </div>
+
+                    <div id="correctAnswerArea"
+                         class="hidden bg-gray-800 rounded-lg p-4 border border-gray-700 mt-4 border-l-4 border-correct">
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="block text-correct font-medium flex items-center">
+                                <i class="fa fa-check-circle mr-2"></i>参考答案与解析
+                            </label>
+                            <button id="hideCorrectAnswer"
+                                    class="text-gray-400 hover:text-white text-sm p-1 rounded-full hover:bg-gray-700">
+                                <i class="fa fa-chevron-up"></i>
+                            </button>
+                        </div>
+                        <div id="correctAnswerContent"
+                             class="text-white whitespace-pre-wrap leading-relaxed text-sm md:text-base"></div>
+                    </div>
+
+                    <div class="flex flex-wrap justify-between items-center gap-4 mt-8 pt-4 border-t border-gray-700/50">
+                        <button id="prevBtn"
+                                class="px-6 py-2.5 bg-gray-600 text-gray-200 rounded-lg font-medium btn-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                th:disabled="${currentIndex == 0}">
+                            <i class="fa fa-arrow-left mr-2"></i>上一题
+                        </button>
+                        <button id="submitBtn"
+                                class="px-6 py-2.5 bg-secondary text-white rounded-lg font-medium btn-hover flex items-center">
+                            <i class="fa fa-check mr-2"></i>提交答案
+                        </button>
+                        <button id="nextBtn"
+                                class="px-6 py-2.5 bg-primary text-white rounded-lg font-medium btn-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                th:disabled="${currentIndex == questions.size() - 1}">
+                            下一题<i class="fa fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="message"
+                     class="hidden px-4 py-3 rounded-lg mb-6 text-center bg-gray-800 text-white message-animate opacity-0 translate-y-2">
+                    <i id="messageIcon" class="fa fa-info-circle mr-2"></i>
+                    <span id="messageText"></span>
+                </div>
+
+                <div class="w-full bg-gray-700 rounded-full h-2.5 mb-8 overflow-hidden">
+                    <div id="progressBar" class="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
+                         th:style="'width: ' + ${(currentIndex + 1) * 100 / questions.size()} + '%'">
+                        <div class="h-full w-full bg-gradient-to-r from-primary to-primary/60 animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<footer class="bg-neutral text-gray-400 py-6 mt-auto border-t border-gray-800">
+    <div class="container mx-auto px-4 text-center text-sm">
+        <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+            <p>© 2025 Java学习题库 | 专注Java知识练习</p>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="hover:text-text-light transition-colors">
+                    <i class="fa fa-question-circle mr-1"></i>帮助中心
+                </a>
+                <a href="#" class="hover:text-text-light transition-colors">
+                    <i class="fa fa-file-text-o mr-1"></i>使用指南
+                </a>
+                <a href="#" class="hover:text-text-light transition-colors">
+                    <i class="fa fa-envelope-o mr-1"></i>联系我们
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script th:inline="javascript">
+    const questions = /*[[${#lists.isEmpty(questions) ? '[]' : questions}]]*/ [];
+    const answers = new Array(questions.length).fill('');
+    const correctAnswers = new Array(questions.length).fill('');
+    const collectedQuestions = new Set(); // 存储已收藏的题目ID
+    let currentIndex = /*[[${currentIndex}]]*/ 0;
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const answerTextarea = document.getElementById('answer');
+    const questionTitle = document.getElementById('questionTitle');
+    const questionNumber = document.getElementById('questionNumber');
+    const currentQuestionNum = document.getElementById('currentQuestionNum');
+    const totalQuestionsNum = document.getElementById('totalQuestionsNum');
+    const mobileCurrentQuestionNum = document.getElementById('mobileCurrentQuestionNum');
+    const mobileTotalQuestionsNum = document.getElementById('mobileTotalQuestionsNum');
+    const correctAnswerArea = document.getElementById('correctAnswerArea');
+    const correctAnswerContent = document.getElementById('correctAnswerContent');
+    const hideCorrectAnswerBtn = document.getElementById('hideCorrectAnswer');
+    const addQuestionBtn = document.getElementById('addQuestionBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarTrigger = document.getElementById('sidebarTrigger');
+    const toggleSidebar = document.getElementById('toggleSidebar');
+    const questionsList = document.getElementById('questionsList');
+    const collapseSidebar = document.getElementById('collapseSidebar');
+    const expandSidebar = document.getElementById('expandSidebar');
+    const progressBar = document.getElementById('progressBar');
+    const messageElement = document.getElementById('message');
+    const messageIcon = document.getElementById('messageIcon');
+    const messageText = document.getElementById('messageText');
+    const emptyQuestionState = document.getElementById('emptyQuestionState');
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    const realnameDisplay = document.getElementById('realnameDisplay');
+    const usernameInMenu = document.getElementById('usernameInMenu');
+    const realnameInMenu = document.getElementById('realnameInMenu');
+    const userRole = document.getElementById('userRole');
+    const loginLogoutLink = document.getElementById('loginLogoutLink');
+    const collectBtn = document.getElementById('collectBtn');
+    const collectIcon = document.getElementById('collectIcon');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchUserInfo();
+        fetchCollectedQuestions(); // 加载已收藏的题目
+        generateQuestionsList();
+
+        if (questions.length > 0) {
+            emptyQuestionState.classList.add('hidden');
+            updateQuestionDisplay();
+        } else {
+            questionTitle.textContent = '未加载到题目数据，请检查后端配置';
+        }
+
+        // 收藏按钮点击事件
+        collectBtn.addEventListener('click', toggleCollection);
+
+        hideCorrectAnswerBtn.addEventListener('click', () => {
+            correctAnswerArea.classList.add('hidden');
+            correctAnswerArea.style.opacity = '0';
+            setTimeout(() => correctAnswerArea.classList.add('hidden'), 300);
+        });
+
+        sidebarTrigger.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+            sidebar.classList.toggle('left-0');
+            sidebar.classList.toggle('top-16');
+            sidebar.classList.toggle('h-[calc(100vh-4rem)]');
+            sidebar.classList.toggle('z-20');
+        });
+
+        toggleSidebar.addEventListener('click', () => sidebar.classList.add('hidden'));
+
+        collapseSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('sidebar-expanded');
+            sidebar.classList.add('sidebar-collapsed');
+            collapseSidebar.classList.add('hidden');
+            expandSidebar.classList.remove('hidden');
+            document.querySelectorAll('.sidebar-text').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item span:not(:first-child)').forEach(el => el.classList.add('hidden'));
+        });
+
+        expandSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('sidebar-collapsed');
+            sidebar.classList.add('sidebar-expanded');
+            expandSidebar.classList.add('hidden');
+            collapseSidebar.classList.remove('hidden');
+            document.querySelectorAll('.sidebar-text').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('.nav-item span:not(:first-child)').forEach(el => el.classList.remove('hidden'));
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                submitBtn.click();
+            }
+        });
+
+        addQuestionBtn.addEventListener('click', () => {
+            window.location.href = '/java/add/question';
+        });
+    });
+
+    // 获取已收藏的题目 - 修复加载问题
+    async function fetchCollectedQuestions() {
+        try {
+            const response = await fetch('/java/study/collect/list');
+            if (!response.ok) throw new Error(`获取收藏列表失败，状态码：${response.status}`);
+            const result = await response.json();
+
+            // 适配后端R对象：先判断code是否为成功状态
+            if (result.code === 1 && result.data) {
+                // 清空现有收藏状态再添加新的，确保状态正确
+                collectedQuestions.clear();
+                result.data.forEach(id => collectedQuestions.add(id));
+
+                // 关键修复：加载完成后立即更新UI显示
+                updateCollectButtonState();
+                generateQuestionsList();
+            } else {
+                // 处理后端返回的错误信息（如用户未登录）
+                console.warn('获取收藏列表警告：', result.msg || '无收藏数据');
+                if (result.msg === '用户未登录') {
+                    collectedQuestions.clear();
+                }
+            }
+        } catch (error) {
+            console.error('获取收藏列表失败：', error);
+            collectedQuestions.clear();
+        }
+    }
+
+    // 切换题目收藏状态 - 核心修复函数
+    async function toggleCollection() {
+        const currentQuestion = questions[currentIndex];
+        if (!currentQuestion || !currentQuestion.id) {
+            showMessage('无法获取题目信息', 'warning');
+            return;
+        }
+
+        const questionId = currentQuestion.id;
+        const isCollected = collectedQuestions.has(questionId);
+
+        // 未登录状态下提示登录
+        if (!isLoggedIn()) {
+            showMessage('请先登录后再进行收藏操作', 'warning');
+            setTimeout(() => {
+                window.location.href = '/java/login';
+            }, 1500);
+            return;
+        }
+
+        try {
+            // 显示加载状态
+            collectIcon.classList.add('fa-spin');
+            collectIcon.classList.remove('fa-star', 'fa-star-o');
+            collectIcon.classList.add('fa-spinner');
+
+            const url = `/java/study/collect/${isCollected ? 'remove' : 'add'}/${questionId}`;
+            const response = await fetch(url, {method: 'POST'});
+
+            if (!response.ok) throw new Error(`操作失败，状态码：${response.status}`);
+
+            const result = await response.json();
+            // 适配后端R对象：先判断接口是否调用成功
+            if (result.code === 1 && result.data) {
+                const businessData = result.data;
+                if (businessData.success) {
+                    // 更新收藏状态
+                    if (isCollected) {
+                        collectedQuestions.delete(questionId);
+                        showMessage(businessData.message || '取消收藏成功', 'success');
+                    } else {
+                        collectedQuestions.add(questionId);
+                        showMessage(businessData.message || '收藏成功', 'success');
+                    }
+                    updateCollectButtonState();
+                    // 同步更新侧边栏题目导航的收藏图标
+                    generateQuestionsList();
+                } else {
+                    // 业务逻辑失败（如重复收藏）
+                    showMessage(businessData.message || '操作失败', 'warning');
+                }
+            } else {
+                // 接口调用失败（如系统异常）
+                showMessage(result.msg || '操作失败', 'warning');
+            }
+        } catch (error) {
+            console.error('收藏操作失败：', error);
+            showMessage('操作失败：' + error.message, 'warning');
+        } finally {
+            // 恢复图标状态
+            collectIcon.classList.remove('fa-spin', 'fa-spinner');
+            updateCollectButtonState();
+        }
+    }
+
+    // 检查用户是否已登录 - 增强判断逻辑
+    function isLoggedIn() {
+        const role = userRole.textContent;
+        return role !== '未登录' && role !== '游客' && role !== '';
+    }
+
+    // 更新收藏按钮状态
+    function updateCollectButtonState() {
+        const currentQuestion = questions[currentIndex];
+        if (!currentQuestion || !currentQuestion.id) return;
+
+        if (collectedQuestions.has(currentQuestion.id)) {
+            collectIcon.classList.remove('fa-star-o');
+            collectIcon.classList.add('fa-star');
+        } else {
+            collectIcon.classList.remove('fa-star');
+            collectIcon.classList.add('fa-star-o');
+        }
+    }
+
+    // 检查用户是否已登录
+    function isLoggedIn() {
+        return userRole.textContent !== '未登录' && userRole.textContent !== '游客';
+    }
+
+    async function fetchUserInfo() {
+        try {
+            const response = await fetch('/java/login/user');
+            if (!response.ok) throw new Error(`接口请求失败，状态码：${response.status}`);
+            const result = await response.json();
+            if (result.code === 1 && result.data) {
+                renderUserInfo(result.data);
+                // 用户信息加载完成后重新获取收藏列表，确保登录状态下能正确加载
+                fetchCollectedQuestions();
+            } else {
+                throw new Error('接口返回数据格式异常');
+            }
+        } catch (error) {
+            console.error('用户信息获取失败：', error);
+            usernameDisplay.textContent = '未登录';
+            realnameDisplay.textContent = '（请登录）';
+            usernameInMenu.textContent = '未登录';
+            realnameInMenu.textContent = '未登录';
+            userRole.textContent = '游客';
+            loginLogoutLink.innerHTML = '<i class="fa fa-sign-in mr-2"></i>登录';
+            loginLogoutLink.href = '/java/login';
+        }
+    }
+
+    function renderUserInfo(userData) {
+        usernameDisplay.textContent = userData.username || '未知用户';
+        realnameDisplay.textContent = `（${userData.realname || '未设置'}）`;
+        usernameInMenu.textContent = userData.username || '未知用户';
+        realnameInMenu.textContent = `真实姓名：${userData.realname || '未设置'}`;
+        userRole.textContent = '管理员';
+        loginLogoutLink.innerHTML = '<i class="fa fa-sign-out mr-2"></i>退出';
+        loginLogoutLink.href = '/java/logout';
+    }
+
+    function generateQuestionsList() {
+        questionsList.innerHTML = '';
+        questions.forEach((question, index) => {
+            const item = document.createElement('div');
+            item.className = `nav-item ${index === currentIndex ? 'active' : 'text-gray-300'}`;
+            const shortQuestion = question.question.length > 20
+                ? question.question.substring(0, 20) + '...'
+                : question.question;
+
+            // 在题目导航中显示收藏状态
+            const isCollected = collectedQuestions.has(question.id);
+            item.innerHTML = `
+                <div class="flex items-start">
+                    <span class="w-6 inline-block mr-2">${index + 1}</span>
+                    <span class="truncate">${shortQuestion}</span>
+                    ${isCollected ? '<i class="fa fa-star text-warning ml-1"></i>' : ''}
+                </div>
+            `;
+            item.addEventListener('click', () => switchQuestion(index));
+            questionsList.appendChild(item);
+        });
+    }
+
+    function updateQuestionDisplay() {
+        questionTitle.textContent = questions[currentIndex]?.question || '';
+        questionNumber.textContent = currentIndex + 1;
+        currentQuestionNum.textContent = currentIndex + 1;
+        totalQuestionsNum.textContent = questions.length;
+        mobileCurrentQuestionNum.textContent = currentIndex + 1;
+        mobileTotalQuestionsNum.textContent = questions.length;
+        answerTextarea.value = answers[currentIndex] || '';
+
+        // 更新收藏按钮状态
+        updateCollectButtonState();
+
+        if (correctAnswers[currentIndex]) {
+            correctAnswerContent.textContent = correctAnswers[currentIndex];
+            correctAnswerArea.classList.remove('hidden');
+            setTimeout(() => correctAnswerArea.style.opacity = '1', 50);
+        } else {
+            correctAnswerArea.classList.add('hidden');
+            correctAnswerArea.style.opacity = '0';
+        }
+
+        progressBar.style.width = `${(currentIndex + 1) * 100 / questions.length}%`;
+
+        document.querySelectorAll('.nav-item').forEach((item, index) => {
+            if (index === currentIndex) {
+                item.classList.add('active');
+                item.classList.remove('text-gray-300');
+                item.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+            } else {
+                item.classList.remove('active');
+                item.classList.add('text-gray-300');
+            }
+        });
+
+        prevBtn.disabled = currentIndex === 0;
+        nextBtn.disabled = currentIndex === questions.length - 1;
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        hideMessage();
+    }
+
+    function switchQuestion(index) {
+        answers[currentIndex] = answerTextarea.value;
+        currentIndex = index;
+        updateQuestionDisplay();
+        if (window.innerWidth < 768) sidebar.classList.add('hidden');
+    }
+
+    submitBtn.addEventListener('click', async () => {
+        const userAnswer = answerTextarea.value.trim();
+        if (!userAnswer) {
+            showMessage('请输入答案后再提交', 'warning');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>提交中...';
+
+        try {
+            const questionId = questions[currentIndex]?.id;
+            const response = await fetch(`/java/submitAnswer/${questionId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userAnswer})
+            });
+
+            if (!response.ok) throw new Error(`服务器响应异常：${response.status}`);
+            const result = await response.json();
+
+            if (result.success) {
+                answers[currentIndex] = userAnswer;
+                correctAnswers[currentIndex] = result.correctAnswer || '暂无正确答案';
+                correctAnswerContent.textContent = correctAnswers[currentIndex];
+                correctAnswerArea.classList.remove('hidden');
+                setTimeout(() => correctAnswerArea.style.opacity = '1', 50);
+                showMessage(result.message || '答案提交成功', 'success');
+            } else {
+                showMessage('提交失败：' + (result.message || '服务器处理异常'), 'warning');
+            }
+        } catch (error) {
+            console.error('提交答案出错：', error);
+            showMessage('提交失败：' + error.message, 'warning');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-check mr-2"></i>提交答案';
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentIndex > 0) switchQuestion(currentIndex - 1);
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentIndex < questions.length - 1) switchQuestion(currentIndex + 1);
+    });
+
+    function showMessage(text, type) {
+        messageText.textContent = text;
+        messageIcon.className = type === 'success'
+            ? 'fa fa-check-circle mr-2 text-green-400'
+            : 'fa fa-exclamation-circle mr-2 text-warning';
+        messageElement.classList.remove('hidden', 'bg-green-600/20', 'bg-yellow-600/20');
+        messageElement.classList.add(type === 'success' ? 'bg-green-600/20' : 'bg-yellow-600/20');
+        setTimeout(() => messageElement.classList.remove('opacity-0', 'translate-y-2'), 50);
+        setTimeout(hideMessage, 3000);
+    }
+
+    function hideMessage() {
+        messageElement.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => messageElement.classList.add('hidden'), 300);
+    }
+</script>
+</body>
+</html>
